@@ -1,12 +1,11 @@
 var express = require('express');
 var fs = require('fs');
 var path = require('path');
-//var crypto = require('crypto');
-//var os = require('os');
 var app = express();
 var mustache = require('mustache');
-var template = fs.readFileSync(__dirname + '\\template.html').toString();
-var getPayload = require(__dirname + '\\get_payload');
+var urlparser = require('url');
+var template = fs.readFileSync(__dirname + '\\res\\template.html').toString();
+var getPayload = require(__dirname + '\\res\\get_payload');
 
 mustache.parse(template);
 
@@ -49,10 +48,8 @@ var stack = new Stack();
 
 ///////////////////////////////////////////////////////////
 
-var rootDir = 'C:\\Users\\Administrator\\Desktop\\fick';
-
 var paths = {
-    photos: rootDir,
+    photos: 'C:\\Users\\Administrator\\Desktop\\fick',
     previews: null,
     thumbs: null,
 };
@@ -69,28 +66,30 @@ function getDirs(srcpath)
     });
 }
 
-// Number.prototype.pad = function(size)
-// {
-//     var s = String(this);
-//     while (s.length < (size || 2)) {s = "0" + s;}
-//     return s;
-// }
+function urldecode(url)
+{
+    return decodeURIComponent(url.replace(/\+/g, ' '));
+}
 
 app.get('/', function(req, res)
 {
-    res.sendFile('frameset.html', {root: __dirname })
+    res.sendFile('res\\frameset.html', {root: __dirname })
 });
 
 app.all('*', function(req, res, next)
 {
-    var url = req.url;
-    var ext = path.extname(url);
-    if (ext === '.css' || ext === '.js')
-        res.sendFile(url.substring(1), {root: __dirname })
-    else if (ext === '.jpg')
+    var pathname = urldecode(urlparser.parse(req.url, true).pathname);
+    var ext = path.extname(pathname).toUpperCase();
+    var file = path.basename(pathname);
+    //console.log(file);
+    if (ext === '.CSS' ||
+        ext === '.JS' ||
+        ext === '.WOFF' ||
+        ext === '.TTF')
+        res.sendFile(file, {root: 'res' })
+    else if (ext === '.JPG')
     {
-        var file = path.basename(url);
-        res.sendFile(file, {root: rootDir })
+        res.sendFile(file, {root: paths.photos })
     }
     else
         next();
@@ -107,10 +106,8 @@ app.all('*', function(req, res, next)
 
 app.get('/view.html', function(req, res)
 {
-    paths.photos = rootDir;
     getPayload(paths, options, function(payload)
     {
-        console.log ('build view')
         res.send(mustache.render(template, {
             title: options.title || 'Photo Gallery',
             data: JSON.stringify(payload)
@@ -122,7 +119,7 @@ app.get ('/back', function(req, res)
 {
     if (stack.isEmpty() === false)
     {
-        rootDir = stack.pop();
+        paths.photos = stack.pop();
     }
     res.redirect('/nav.html');
 });
@@ -131,8 +128,8 @@ app.get ('/hsh*', function(req, res)
 {
     var dec = decodeURIComponent(req.url.substring(4));
     //console.log('hit:'+dec);
-    stack.push(rootDir);
-    rootDir = rootDir+"\\"+dec;
+    stack.push(paths.photos);
+    paths.photos = paths.photos+"\\"+dec;
 
     //app.del('/view.html');
     //app = express();
@@ -144,7 +141,7 @@ app.get ('/hsh*', function(req, res)
 
 app.get('/nav.html', function(req, res)
 {
-    var dirs = getDirs(rootDir);
+    var dirs = getDirs(paths.photos);
     var header = '<!DOCTYPE html>\n' +
         '<html lang="en">\n' +
         '<body onload="myFunction()">\n' +
@@ -155,7 +152,7 @@ app.get('/nav.html', function(req, res)
         '</script>\n' +
         '\n' +
         '</body>';
-    var out = header + rootDir + '<hr><a href=\"'+'back'+'\">BACK</a></br>';
+    var out = header + paths.photos + '<hr><a href=\"'+'back'+'\">BACK</a></br>';
     dirs.forEach(function(entry)
     {
         var escaped_str = require('querystring').escape(entry);
