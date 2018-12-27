@@ -6,7 +6,7 @@ var mustache = require('mustache');
 var urlParser = require('url');
 var template = fs.readFileSync(__dirname + '\\res\\template.html').toString();
 var getPayload = require(__dirname + '\\res\\get_payload');
-//var stack = require(__dirname + '\\res\\stack');
+var stack = require(__dirname + '\\res\\stack');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var uuidv4 = require('uuid/v4');
@@ -60,15 +60,14 @@ function urldecode(url)
 
 app.get('/', function(req, res)
 {
+    saveSession(req);
     res.sendFile('res\\frameset.html', {root: __dirname });
 });
 
 app.all('*', function(req, res, next)
 {
-    paths.photos = getPhotos(req);
-
     var pathname = urldecode(urlParser.parse(req.url, true).pathname);
-    var ext = path.extname(pathname).toUpperCase();
+    //var ext = path.extname(pathname).toUpperCase();
     var file = path.basename(pathname);
 
     if (fs.existsSync('res\\'+file))
@@ -93,63 +92,49 @@ app.get('/view.html', function(req, res)
     });
 });
 
-function getStack(req)
+
+function loadSession(req)
 {
-    var stack = require(__dirname + '\\res\\stack');
+    if(req.session.phot)
+    {
+        paths.photos = req.session.phot;
+    }
     if(req.session.fuck)
     {
         stack.setItems(req.session.fuck);
     }
-    return stack;
 }
 
-function getPhotos(req)
-{
-    var phot = paths.photos;
-    if(req.session.phot)
-    {
-        phot = req.session.phot;
-    }
-    return phot;
-}
-
-function saveStack (req, stack)
+function saveSession (req)
 {
     req.session.fuck = stack.getItems();
+    req.session.phot = paths.photos;
 }
-
-function savePhotos (req, phot)
-{
-    req.session.phot = phot;
-}
-
 
 app.get ('/back', function(req, res)
 {
-    var stack = getStack(req);
+    loadSession(req);
     if (stack.isEmpty() === false)
     {
         paths.photos = stack.pop();
-        savePhotos(req, paths.photos);
+        saveSession(req);
     }
     res.redirect('/nav.html');
 });
 
 app.get ('/hsh*', function(req, res)
 {
+    loadSession(req);
     var dec = decodeURIComponent(req.url.substring(4));
-    var stack = getStack(req);
-    paths.photos = getPhotos(req);
     stack.push(paths.photos);
-    saveStack(req, stack);
     paths.photos = paths.photos+"\\"+dec;
-    savePhotos(req, paths.photos);
+    saveSession(req);
     res.redirect('/nav.html');
 });
 
 app.get('/nav.html', function(req, res)
 {
-    paths.photos = getPhotos(req);
+    loadSession(req);
     var dirs = getDirs(paths.photos);
     var header = '<!DOCTYPE html>\n' +
         '<html lang="en">\n' +
