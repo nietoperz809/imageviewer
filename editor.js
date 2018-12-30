@@ -1,73 +1,105 @@
 'use strict';
 
+const wait = require ('wait-for-stuff');
 const basic = require ("./basic");
-
 const fs = require ('fs');
-const readline = require ('readline');
 
-const rl = readline.createInterface (
+let keyInput = ""
+
+function keyPress ()
+{
+    return new Promise ((resolve, reject) =>
     {
-        input: process.stdin,
-        output: process.stdout,
-        prompt: '\nReady.\n> '
-    });
+        process.stdin.once ('data', function(key)
+        {
+            keyInput = key.toString();
+            return resolve ();
+        });
+    })
+}
+
+function getKeyInput()
+{
+    let p = keyPress();
+    wait.for.promise (p);
+    return keyInput;
+}
 
 let program = [];
 
-rl.prompt ();
+let interpreter = new basic.Interpreter ();
 
-function myinput(p)
+function myTextInput (p)
 {
-    return readlineSync.question('?');
+    return getKeyInput().replace(/\n$/, '');
 }
 
-function myprint(text, eol)
+function myprint (text, eol)
 {
-    process.stdout.write(text);
-    if (eol)
-        process.stdout.write('\n');
-}
-
-rl.on ('line', (line) =>
-{
-    let cmd = line.trim ();
-    let sp = cmd.split (" ");
-    switch (sp[0].toUpperCase ())
+    if (text)
     {
-        case "LIST":
-            list ();
-            break;
-        case "SAVE":
-            save (sp[1]);
-            break;
-        case "LOAD":
-            load (sp[1]);
-            break;
-        case "NEW":
-            program = [];
-            break;
-        case "RUN":
-            let txt = toPlainString();
-            let p = new basic.Parser(txt);
-            p.parse();
-            let i = new basic.Interpreter(p);
-            i.print_function = myprint;
-            i.string_input_function = myinput;
-            i.interpret();
-            break;
-        default:
-            rawInput (cmd.toUpperCase());
-            break;
+        process.stdout.write (text);
+        if (eol)
+            process.stdout.write ('\n');
     }
-    rl.prompt ();
-});
+}
 
-function toPlainString()
+function basicRun ()
+{
+    let txt = toPlainString ();
+    let p = new basic.Parser (txt);
+    p.parse ();
+    interpreter.setParser (p);
+    interpreter.print_function = myprint;
+    interpreter.string_input_function = myTextInput;
+    interpreter.interpret ();
+}
+
+main ();
+
+function main ()
+{
+    let running = false;
+    while (1)
+    {
+        if (running === false)
+        {
+            process.stdout.write('\n>');
+            let cmd = getKeyInput().trim();
+            let sp = cmd.split (" ");
+            switch (sp[0].toUpperCase ())
+            {
+                case "LIST":
+                    list ();
+                    break;
+                case "SAVE":
+                    save (sp[1]);
+                    break;
+                case "LOAD":
+                    load (sp[1]);
+                    break;
+                case "NEW":
+                    program = [];
+                    break;
+                case "RUN":
+                    running = true;
+                    basicRun ();
+                    running = false;
+                    break;
+                default:
+                    rawInput (cmd.toUpperCase ());
+                    break;
+            }
+        }
+    }
+}
+
+function toPlainString ()
 {
     let out = "\n";
     for (let i = 0; i < program.length; i++)
     {
-        out = out + program[i].n+' '+program[i].t+'\n';
+        out = out + program[i].n + ' ' + program[i].t + '\n';
     }
     return out;
 }
@@ -76,12 +108,12 @@ function save (filename)
 {
     try
     {
-        let x = toPlainString();
+        let x = toPlainString ();
         fs.writeFileSync (filename, x);
     }
     catch (e)
     {
-        console.error("Cannot save "+filename);
+        console.error ("Cannot save " + filename);
     }
 }
 
@@ -89,19 +121,19 @@ function load (filename)
 {
     try
     {
-        let rawdata = fs.readFileSync (filename).toString();
+        let rawdata = fs.readFileSync (filename).toString ();
         //console.log (rawdata);
-        let sp = rawdata.split("\n");
+        let sp = rawdata.split ("\n");
         //console.log(sp);
-        for (let s=0; s<sp.length; s++)
+        for (let s = 0; s < sp.length; s++)
         {
             if (sp[s])
-                rawInput(sp[s]);
+                rawInput (sp[s]);
         }
     }
     catch (e)
     {
-        console.error("Cannot load "+filename);
+        console.error ("Cannot load " + filename);
     }
 }
 
