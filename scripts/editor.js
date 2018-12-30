@@ -1,29 +1,8 @@
 'use strict';
 
-const wait = require ('wait-for-stuff');
 const basic = require ("./basic");
+const input = require ("./syncinput");
 const fs = require ('fs');
-
-let keyInput = ""
-
-function keyPress ()
-{
-    return new Promise ((resolve, reject) =>
-    {
-        process.stdin.once ('data', function (key)
-        {
-            keyInput = key.toString ();
-            return resolve ();
-        });
-    })
-}
-
-function getKeyInput ()
-{
-    let p = keyPress ();
-    wait.for.promise (p);
-    return keyInput;
-}
 
 let program = [];
 
@@ -31,13 +10,18 @@ let interpreter = new basic.Interpreter ();
 
 function myTextInput (p)
 {
-    return getKeyInput ().replace (/\n$/, '');
+    return input.getKeyInput ().replace (/\n$/, '');
 }
 
 function myNumberInput (p)
 {
-    let txt = myTextInput(p);
-    return parseFloat(txt);
+    let txt = myTextInput (p);
+    return parseFloat (txt);
+}
+
+function myClear ()
+{
+    process.stdout.write ("\u001b[2J\u001b[0;0H");
 }
 
 function myprint (text, eol)
@@ -59,6 +43,7 @@ function basicRun ()
     interpreter.print_function = myprint;
     interpreter.string_input_function = myTextInput;
     interpreter.number_input_function = myNumberInput;
+    interpreter.clear_function = myClear;
     interpreter.interpret ();
 }
 
@@ -113,14 +98,15 @@ function list ()
 
 function rawInput (line)
 {
-    //console.log (line);
     let match = line.match ('^[0-9]+');
     if (match)
     {
         let num = match[0];
         let txt = line.substring (num.length).trim ();
         lineInput (num, txt);
+        return true;
     }
+    return false;
 }
 
 function deleteLine (num)
@@ -155,8 +141,9 @@ process.stdout.write ("*** Node BASIC ***");
 while (1)
 {
     process.stdout.write ('\n>');
-    let cmd = getKeyInput ().trim ();
+    let cmd = input.getKeyInput ().trim ();
     let sp = cmd.split (" ");
+    let res = true;
     switch (sp[0].toUpperCase ())
     {
         case "LIST":
@@ -175,11 +162,20 @@ while (1)
             basicRun ();
             break;
         case "BYE":
-            process.exit(0);
+            process.exit (0);
+            break;
+        case "CLS":
+            myClear ();
+            break;
+        case "":
             break;
         default:
-            rawInput (cmd.toUpperCase ());
+            res = rawInput (cmd);
             break;
     }
+    if (false === res)
+        process.stdout.write ('ERROR.');
+    else
+        process.stdout.write ('READY.');
 }
 

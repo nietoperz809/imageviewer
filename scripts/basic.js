@@ -28,7 +28,7 @@ function Token (text, type)
     this.toString = function ()
     {
         return "[" + this.text + "," + this.type + "]";
-    }
+    };
 
     this.getType = function ()
     {
@@ -133,7 +133,7 @@ function Tokenizer (input)
 
     this.tokenize = function ()
     {
-        var keywords = /^(IF|THEN|ELSE|FOR|TO|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|END|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
+        var keywords = /^(IF|THEN|ELSE|FOR|TO|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
         var functions = /^(VAL|STR\$|LEFT\$|RIGHT\$|MID\$|LEN|RND|INT|INSTR|ABS|ASC|CHR\$|SQR|STRING\$|SIN|COS|TAN|TIMER)$/i;
         var i = 0;
         this.error = false;
@@ -532,7 +532,7 @@ function Tokenizer (input)
 
     this.tokenize ();
 
-};
+}
 
 function Line (number)
 {
@@ -1747,11 +1747,9 @@ function Interpreter (parser)
 
         switch (name)
         {
-
-
             case "TIMER":
                 this.expect_param (f, 0);
-                return new Math.floor (new Date ().getTime () / 1000);
+                return Math.floor (new Date ().getTime () / 1000);
 
             case "RND":
                 this.expect_param (f, 0, 1);
