@@ -1566,11 +1566,11 @@ function Interpreter (parser)
 
     this.last_random = 0;
 
-    this.input_stack = new Array;
+    this.input_stack = [];
 
     this.last_point = 0;
 
-    this.data = new Array;
+    this.data = [];
 
     this.data_pointer = 0;
 

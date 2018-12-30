@@ -10,17 +10,17 @@ function keyPress ()
 {
     return new Promise ((resolve, reject) =>
     {
-        process.stdin.once ('data', function(key)
+        process.stdin.once ('data', function (key)
         {
-            keyInput = key.toString();
+            keyInput = key.toString ();
             return resolve ();
         });
     })
 }
 
-function getKeyInput()
+function getKeyInput ()
 {
-    let p = keyPress();
+    let p = keyPress ();
     wait.for.promise (p);
     return keyInput;
 }
@@ -31,7 +31,13 @@ let interpreter = new basic.Interpreter ();
 
 function myTextInput (p)
 {
-    return getKeyInput().replace(/\n$/, '');
+    return getKeyInput ().replace (/\n$/, '');
+}
+
+function myNumberInput (p)
+{
+    let txt = myTextInput(p);
+    return parseFloat(txt);
 }
 
 function myprint (text, eol)
@@ -52,46 +58,8 @@ function basicRun ()
     interpreter.setParser (p);
     interpreter.print_function = myprint;
     interpreter.string_input_function = myTextInput;
+    interpreter.number_input_function = myNumberInput;
     interpreter.interpret ();
-}
-
-main ();
-
-function main ()
-{
-    let running = false;
-    while (1)
-    {
-        if (running === false)
-        {
-            process.stdout.write('\n>');
-            let cmd = getKeyInput().trim();
-            let sp = cmd.split (" ");
-            switch (sp[0].toUpperCase ())
-            {
-                case "LIST":
-                    list ();
-                    break;
-                case "SAVE":
-                    save (sp[1]);
-                    break;
-                case "LOAD":
-                    load (sp[1]);
-                    break;
-                case "NEW":
-                    program = [];
-                    break;
-                case "RUN":
-                    running = true;
-                    basicRun ();
-                    running = false;
-                    break;
-                default:
-                    rawInput (cmd.toUpperCase ());
-                    break;
-            }
-        }
-    }
 }
 
 function toPlainString ()
@@ -122,9 +90,7 @@ function load (filename)
     try
     {
         let rawdata = fs.readFileSync (filename).toString ();
-        //console.log (rawdata);
         let sp = rawdata.split ("\n");
-        //console.log(sp);
         for (let s = 0; s < sp.length; s++)
         {
             if (sp[s])
@@ -180,6 +146,40 @@ function lineInput (num, txt)
         {
             return Number (a.n) > Number (b.n);
         });
+    }
+}
+
+//////////////////////////////////////////////////////////
+
+process.stdout.write ("*** Node BASIC ***");
+while (1)
+{
+    process.stdout.write ('\n>');
+    let cmd = getKeyInput ().trim ();
+    let sp = cmd.split (" ");
+    switch (sp[0].toUpperCase ())
+    {
+        case "LIST":
+            list ();
+            break;
+        case "SAVE":
+            save (sp[1]);
+            break;
+        case "LOAD":
+            load (sp[1]);
+            break;
+        case "NEW":
+            program = [];
+            break;
+        case "RUN":
+            basicRun ();
+            break;
+        case "BYE":
+            process.exit(0);
+            break;
+        default:
+            rawInput (cmd.toUpperCase ());
+            break;
     }
 }
 
