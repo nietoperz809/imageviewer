@@ -1,16 +1,20 @@
 'use strict';
 
 const basic = require ("./basic");
-const input = require ("./syncinput");
+const syncinput = require ("./syncinput");
 const fs = require ('fs');
 
 let program = [];
 
 let interpreter = new basic.Interpreter ();
+interpreter.print_function = myprint;
+interpreter.string_input_function = myTextInput;
+interpreter.number_input_function = myNumberInput;
+interpreter.clear_function = myClear;
 
 function myTextInput (p)
 {
-    return input.getKeyInput ().replace (/\n$/, '');
+    return syncinput.getKeyInput ().replace (/\n$/, '');
 }
 
 function myNumberInput (p)
@@ -40,10 +44,14 @@ function basicRun ()
     let p = new basic.Parser (txt);
     p.parse ();
     interpreter.setParser (p);
-    interpreter.print_function = myprint;
-    interpreter.string_input_function = myTextInput;
-    interpreter.number_input_function = myNumberInput;
-    interpreter.clear_function = myClear;
+    interpreter.interpret ();
+}
+
+function immediate (txt)
+{
+    let p = new basic.Parser ('1 '+txt);
+    p.parse ();
+    interpreter.setParser (p);
     interpreter.interpret ();
 }
 
@@ -103,10 +111,12 @@ function rawInput (line)
     {
         let num = match[0];
         let txt = line.substring (num.length).trim ();
-        lineInput (num, txt);
+        basicLineInput (num, txt);
         return true;
     }
-    return false;
+    else
+        immediate(line);
+    return true;
 }
 
 function deleteLine (num)
@@ -121,7 +131,7 @@ function deleteLine (num)
     }
 }
 
-function lineInput (num, txt)
+function basicLineInput (num, txt)
 {
     deleteLine (num);
     if (txt)
@@ -141,7 +151,7 @@ process.stdout.write ("*** Node BASIC ***");
 while (1)
 {
     process.stdout.write ('\n>');
-    let cmd = input.getKeyInput ().trim ();
+    let cmd = syncinput.getKeyInput ().trim ();
     let sp = cmd.split (" ");
     let res = true;
     switch (sp[0].toUpperCase ())
