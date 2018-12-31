@@ -40,19 +40,37 @@ function myprint (text, eol)
 
 function basicRun ()
 {
-    let txt = toPlainString ();
-    let p = new basic.Parser (txt);
-    p.parse ();
-    interpreter.setParser (p);
-    interpreter.interpret ();
+    try
+    {
+        let txt = toPlainString ();
+        let p = new basic.Parser (txt);
+        p.parse ();
+        interpreter.setParser (p);
+        interpreter.interpret ();
+        return true;
+    }
+    catch (e)
+    {
+        console.log(e);
+        return false;
+    }
 }
 
 function immediate (txt)
 {
-    let p = new basic.Parser ('1 '+txt);
-    p.parse ();
-    interpreter.setParser (p);
-    interpreter.interpret ();
+    try
+    {
+        let p = new basic.Parser ('1 ' + txt);
+        p.parse ();
+        interpreter.setParser (p);
+        interpreter.interpret ();
+        return true;
+    }
+    catch (e)
+    {
+        console.log(e);
+        return false;
+    }
 }
 
 function toPlainString ()
@@ -115,8 +133,7 @@ function rawInput (line)
         return true;
     }
     else
-        immediate(line);
-    return true;
+        return immediate(line);
 }
 
 function deleteLine (num)
@@ -169,7 +186,7 @@ while (1)
             program = [];
             break;
         case "RUN":
-            basicRun ();
+            res = basicRun ();
             break;
         case "BYE":
             process.exit (0);

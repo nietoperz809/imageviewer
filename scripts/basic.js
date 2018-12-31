@@ -133,8 +133,8 @@ function Tokenizer (input)
 
     this.tokenize = function ()
     {
-        var keywords = /^(IF|THEN|ELSE|FOR|TO|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
-        var functions = /^(VAL|STR\$|LEFT\$|RIGHT\$|MID\$|LEN|RND|INT|INSTR|ABS|ASC|CHR\$|SQR|STRING\$|SIN|COS|TAN|TIMER)$/i;
+        var keywords = /^(IF|THEN|ELSE|FOR|TO|RESTORE|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
+        var functions = /^(VAL|PI|STR\$|TI\$|LEFT\$|RIGHT\$|MID\$|LEN|RND|INT|INSTR|ABS|ASC|CHR\$|SQR|STRING\$|SIN|COS|TAN|TIMER)$/i;
         var i = 0;
         this.error = false;
         while (i < input.length)
@@ -1188,6 +1188,12 @@ function Parser (text)
         return node;
     }
 
+    this.restore_statement = function (self)
+    {
+        var node = new Node ("RESTORE");
+        return node;
+    }
+
     this.clear_statement = function (self)
     {
         var node = new Node ("CLEAR");
@@ -1202,8 +1208,6 @@ function Parser (text)
 
         if (self.acceptText ("THEN"))
         {
-
-
             var thenpart = new Node ("THEN");
             var statement = null;
 
@@ -1416,6 +1420,7 @@ function Parser (text)
     this.functions["READ"] = this.read_statement;
     this.functions["KEY"] = this.key_statement;
     this.functions["CLEAR"] = this.clear_statement;
+    this.functions["RESTORE"] = this.restore_statement;
 }
 
 /*variable name with [] means its an array */
@@ -1747,9 +1752,15 @@ function Interpreter (parser)
 
         switch (name)
         {
+            case "PI":
+                return Math.PI;
+
             case "TIMER":
                 this.expect_param (f, 0);
                 return Math.floor (new Date ().getTime () / 1000);
+
+            case "TI$":
+                return new Date ().toUTCString ();
 
             case "RND":
                 this.expect_param (f, 0, 1);
@@ -1771,6 +1782,7 @@ function Interpreter (parser)
                     }
                 }
                 throw "ERROR: type mismatch for function RND";
+
             case "CHR$":
                 this.expect_param (f, 1);
                 var val = this.evalExpr (f.children[0]);
@@ -1805,6 +1817,7 @@ function Interpreter (parser)
                     return result;
                 }
                 throw "ERROR: type mismatch for function STRING$";
+
             case "ASC":
                 this.expect_param (f, 1);
                 var val = this.evalExpr (f.children[0]);
@@ -1813,6 +1826,7 @@ function Interpreter (parser)
                     return val.charCodeAt (0);
                 }
                 throw "ERROR: type mismatch for function ASC";
+
             case "LEN":
                 this.expect_param (f, 1);
                 var val = this.evalExpr (f.children[0]);
@@ -2046,6 +2060,12 @@ function Interpreter (parser)
     }
 
     this.last_input_var = 0;
+
+    this.restore_statement = function (self, idx)
+    {
+        self.data_pointer = 0;
+        return idx+1;
+    }
 
     this.read_statement = function (self, idx)
     {
@@ -2655,6 +2675,7 @@ function Interpreter (parser)
     this.ifunctions["RANDOMIZE"] = this.randomize_statement;
     this.ifunctions["READ"] = this.read_statement;
     this.ifunctions["DATA"] = this.data_statement;
+    this.ifunctions["RESTORE"] = this.restore_statement;
     this.ifunctions["KEY"] = this.dummy_statement;
     this.ifunctions["CLEAR"] = this.clear_statement;
 }
