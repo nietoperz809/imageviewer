@@ -3,6 +3,7 @@
 const basic = require ("./basic");
 const syncinput = require ("./syncinput");
 const fs = require ('fs');
+const robot = require("robotjs");
 
 let program = [];
 
@@ -162,6 +163,24 @@ function basicLineInput (num, txt)
     }
 }
 
+function edit (num)
+{
+    let line = "";
+    for (let i = 0; i < program.length; i++)
+    {
+        if (program[i].n === num)
+        {
+            line = program[i].n + ' ' + program[i].t;
+            break;
+        }
+    }
+    if (line === "")
+        return false;
+    robot.typeString(line);
+    let cmd = syncinput.getKeyInput ().trim ();
+    return rawInput(cmd);
+}
+
 //////////////////////////////////////////////////////////
 
 process.stdout.write ("*** Node BASIC ***");
@@ -175,6 +194,9 @@ while (1)
     {
         case "LIST":
             list ();
+            break;
+        case "EDIT":
+            res = edit (sp[1]);
             break;
         case "SAVE":
             save (sp[1]);
