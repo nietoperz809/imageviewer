@@ -3,7 +3,7 @@
 const basic = require ("./basic");
 const syncinput = require ("./syncinput");
 const fs = require ('fs');
-const robot = require("robotjs");
+const robot = require ("robotjs");
 
 let program = [];
 
@@ -52,7 +52,7 @@ function basicRun ()
     }
     catch (e)
     {
-        console.log(e);
+        console.log (e);
         return false;
     }
 }
@@ -69,7 +69,7 @@ function immediate (txt)
     }
     catch (e)
     {
-        console.log(e);
+        console.log (e);
         return false;
     }
 }
@@ -115,11 +115,40 @@ function load (filename)
     }
 }
 
-function list ()
+function list (fromto)
 {
+    fromto.shift ();
+    fromto = fromto.join ('');
+    let start = 0;
+    let end = Infinity;
+    if (fromto !== "")
+    {
+        let ft = fromto.split ("-");
+        if (ft[1] === undefined)
+        {
+            start = ft[0];
+            end = ft[0];
+        }
+        else if (ft[0] === "")
+        {
+            end = ft[1];
+        }
+        else if (ft[1] === "")
+        {
+            start = ft[0];
+        }
+        else
+        {
+            start = ft[0];
+            end = ft[1];
+        }
+    }
+    //console.log (start + ' --- ' + end);
     for (let i = 0; i < program.length; i++)
     {
-        console.log (program[i].n + ' ' + program[i].t);
+        let lnum = program[i].n;
+        if (lnum >= Number (start) && lnum <= Number (end))
+            console.log (lnum + ' ' + program[i].t);
     }
 }
 
@@ -134,7 +163,7 @@ function rawInput (line)
         return true;
     }
     else
-        return immediate(line);
+        return immediate (line);
 }
 
 function deleteLine (num)
@@ -176,9 +205,9 @@ function edit (num)
     }
     if (line === "")
         return false;
-    robot.typeString(line);
+    robot.typeString (line);
     let cmd = syncinput.getKeyInput ().trim ();
-    return rawInput(cmd);
+    return rawInput (cmd);
 }
 
 //////////////////////////////////////////////////////////
@@ -193,7 +222,7 @@ while (1)
     switch (sp[0].toUpperCase ())
     {
         case "LIST":
-            list ();
+            list (sp);
             break;
         case "EDIT":
             res = edit (sp[1]);
