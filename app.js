@@ -9,7 +9,6 @@ var getPayload = require (__dirname + '\\res\\get_payload');
 var stack = require (__dirname + '\\res\\stack');
 var cookieParser = require ('cookie-parser');
 var session = require ('express-session');
-//var uuidv4 = require('uuid/v4');
 
 app.use (cookieParser ());
 app.use (session ({
