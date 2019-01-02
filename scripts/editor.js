@@ -4,6 +4,7 @@ const basic = require ("./basic");
 const syncinput = require ("./syncinput");
 const fs = require ('fs');
 const robot = require ("robotjs");
+const path = require ('path');
 
 let program = [];
 
@@ -117,12 +118,12 @@ function load (filename)
 
 function dir (srcPath)
 {
-    console.log ("Dir of: "+srcPath);
+    console.log ("DIR of: "+path.resolve(srcPath));
     fs.readdirSync (srcPath).forEach (function (file)
     {
         try
         {
-            var stat = fs.statSync (srcPath + '//' + file);
+            let stat = fs.statSync (srcPath + '//' + file);
             file = file.padEnd(20, ' ');
             if (stat.isDirectory())
             {
