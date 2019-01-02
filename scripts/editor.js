@@ -115,6 +115,30 @@ function load (filename)
     }
 }
 
+function dir (srcPath)
+{
+    console.log ("Dir of: "+srcPath);
+    fs.readdirSync (srcPath).forEach (function (file)
+    {
+        try
+        {
+            var stat = fs.statSync (srcPath + '//' + file);
+            file = file.padEnd(20, ' ');
+            if (stat.isDirectory())
+            {
+                console.log (file + '<DIR>');
+            }
+            else
+            {
+                console.log (file + stat.size);
+            }
+        }
+        catch (e)
+        {
+        }
+    });
+}
+
 function list (fromto)
 {
     fromto.shift ();
@@ -224,6 +248,9 @@ while (1)
         case "LIST":
             list (sp);
             break;
+        case "DIR":
+            dir (sp[1] || __dirname);
+            break;
         case "EDIT":
             res = edit (sp[1]);
             break;
@@ -231,6 +258,7 @@ while (1)
             save (sp[1]);
             break;
         case "LOAD":
+            program = [];
             load (sp[1]);
             break;
         case "NEW":
