@@ -1,6 +1,8 @@
 const sam = require('./sam');
+const wait = require ('wait-for-stuff');
+const events = require('events');
 
-var AudioContext = require('web-audio-api').AudioContext
+const AudioContext = require('web-audio-api').AudioContext
     , context = new AudioContext
     , Speaker = require('speaker')
 
@@ -10,60 +12,44 @@ context.outStream = new Speaker({
     sampleRate: 44100
 })
 
-let input = "hello sam";
-let ptr = sam.allocate(sam.intArrayFromString(input), 'i8', 1);
+const eventEmitter = new events.EventEmitter();
 
-sam._TextToPhonemes(ptr);
-sam._SetInput(ptr);
-sam._Code39771();
+function playSam (speech)
+{
+    let ret = sam.intArrayFromString (speech);
+    console.log (ret);
+    let ptr = sam.allocate (ret, 'i8', 1, 0);
+    console.log (ptr);
 
-let bufferlength = Math.floor(sam._GetBufferLength()/50);
-let bufferptr = sam._GetBuffer();
+    sam._TextToPhonemes (ptr);
+    sam._SetInput (ptr);
+    sam._Code39771 ();  // init function
 
-audiobuffer = new Float32Array(bufferlength);
-for(let i=0; i<bufferlength; i++)
-    audiobuffer[i] = ((sam.getValue(bufferptr+i, 'i8')&0xFF)-128)/256;
+    let bufferlength = Math.floor (sam._GetBufferLength () / 50);
+    let bufferptr = sam._GetBuffer ();
 
-var source = context.createBufferSource();
+    var source = context.createBufferSource ();
 
-// var buffer = baseAudioContext.createBuffer(numOfchannels, length, sampleRate);
-var soundBuffer = context.createBuffer(1, audiobuffer.length, 44100);
+    var soundBuffer = context.createBuffer (1, bufferlength, 44100);
 
-var buffer = soundBuffer.getChannelData(0);
-for(var i=0; i<audiobuffer.length; i++)
-    buffer[i] = audiobuffer[i];
-source.buffer = soundBuffer;
-source.connect(context.destination);
-source.start(0);
+    var buffer = soundBuffer.getChannelData (0);
+    for (var i = 0; i < bufferlength; i++)
+        buffer[i] = ((sam.getValue (bufferptr + i, 'i8') & 0xFF) - 128) / 256;
 
-/*
+    source.buffer = soundBuffer;
+    source.onended = function (event)
+    {
+        eventEmitter.emit('scream');
+    }
+    source.connect (context.destination);
+    source.start (0);
+}
 
- function Speak(text)
- {
- var input = text;
- while (input.length < 256) input += " ";
- var ptr = allocate(intArrayFromString(input), 'i8', ALLOC_STACK);
- _TextToPhonemes(ptr);
- _SetInput(ptr);
- _Code39771();
- var bufferlength = Math.floor(_GetBufferLength()/50);
- var bufferptr = _GetBuffer();
- audiobuffer = new Float32Array(bufferlength);
- for(var i=0; i<bufferlength; i++)
- audiobuffer[i] = ((getValue(bufferptr+i, 'i8')&0xFF)-128)/256;
- //PlayBuffer(audiobuffer);
- //PlayWebkit(new AudioContext(), audiobuffer);
- var context = new AudioContext();
- var source = context.createBufferSource();
+for (let s=0; s<10; s++)
+{
+    console.log ("start");
+    playSam ("hello Sam");
+    let eventData = wait.for.event (eventEmitter, 'scream');
+    console.log ("ready");
+}
 
- // var buffer = baseAudioContext.createBuffer(numOfchannels, length, sampleRate);
- var soundBuffer = context.createBuffer(1, audiobuffer.length, 22050);
-
- var buffer = soundBuffer.getChannelData(0);
- for(var i=0; i<audiobuffer.length; i++) buffer[i] = audiobuffer[i];
- source.buffer = soundBuffer;
- source.connect(context.destination);
- source.start(0);
- }
-
- */
