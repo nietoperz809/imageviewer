@@ -1,7 +1,52 @@
-function globalEval (x)
+const AudioContext = require('web-audio-api').AudioContext
+    , context = new AudioContext
+    , Speaker = require('speaker')
+
+context.outStream = new Speaker({
+    channels: 1,
+    bitDepth: 16,
+    sampleRate: 44100
+})
+
+function playSam (speech)
 {
-    eval.call (null, x);
+    let ret = intArrayFromString (speech);
+    let ptr = allocate (ret, 'i8', 3, 28); // 1, 0
+
+    _TextToPhonemes (ptr);
+    _SetInput (ptr);
+    _Code39771 ();  // init function
+
+    let bufferlength = Math.floor (_GetBufferLength () / 50);
+    let bufferptr = _GetBuffer ();
+
+    var source = context.createBufferSource ();
+
+    var soundBuffer = context.createBuffer (1, bufferlength, 44100);
+
+    var buffer = soundBuffer.getChannelData (0);
+    for (var i = 0; i < bufferlength; i++)
+        buffer[i] = ((getValue (bufferptr + i, 'i8') & 0xFF) - 128) / 256;
+
+    source.buffer = soundBuffer;
+    source.connect (context.destination);
+    source.start (0);
+
+    source.onended = function()
+    {
+        function myFunc(arg)
+        {
+            process.exit(0);
+        }
+        setTimeout(myFunc, process.argv[2].length*80, 'funky');
+    }
 }
+
+//
+// function globalEval (x)
+// {
+//     eval.call (null, x);
+// }
 
 // *** Environment setup code ***
 // Closure helpers
@@ -1046,88 +1091,88 @@ function _strlen (ptr)
     return (curr - ptr) | 0;
 }
 
-var ERRNO_CODES = {
-    E2BIG: 7,
-    EACCES: 13,
-    EADDRINUSE: 98,
-    EADDRNOTAVAIL: 99,
-    EAFNOSUPPORT: 97,
-    EAGAIN: 11,
-    EALREADY: 114,
-    EBADF: 9,
-    EBADMSG: 74,
-    EBUSY: 16,
-    ECANCELED: 125,
-    ECHILD: 10,
-    ECONNABORTED: 103,
-    ECONNREFUSED: 111,
-    ECONNRESET: 104,
-    EDEADLK: 35,
-    EDESTADDRREQ: 89,
-    EDOM: 33,
-    EDQUOT: 122,
-    EEXIST: 17,
-    EFAULT: 14,
-    EFBIG: 27,
-    EHOSTUNREACH: 113,
-    EIDRM: 43,
-    EILSEQ: 84,
-    EINPROGRESS: 115,
-    EINTR: 4,
-    EINVAL: 22,
-    EIO: 5,
-    EISCONN: 106,
-    EISDIR: 21,
-    ELOOP: 40,
-    EMFILE: 24,
-    EMLINK: 31,
-    EMSGSIZE: 90,
-    EMULTIHOP: 72,
-    ENAMETOOLONG: 36,
-    ENETDOWN: 100,
-    ENETRESET: 102,
-    ENETUNREACH: 101,
-    ENFILE: 23,
-    ENOBUFS: 105,
-    ENODATA: 61,
-    ENODEV: 19,
-    ENOENT: 2,
-    ENOEXEC: 8,
-    ENOLCK: 37,
-    ENOLINK: 67,
-    ENOMEM: 12,
-    ENOMSG: 42,
-    ENOPROTOOPT: 92,
-    ENOSPC: 28,
-    ENOSR: 63,
-    ENOSTR: 60,
-    ENOSYS: 38,
-    ENOTCONN: 107,
-    ENOTDIR: 20,
-    ENOTEMPTY: 39,
-    ENOTRECOVERABLE: 131,
-    ENOTSOCK: 88,
-    ENOTSUP: 95,
-    ENOTTY: 25,
-    ENXIO: 6,
-    EOVERFLOW: 75,
-    EOWNERDEAD: 130,
-    EPERM: 1,
-    EPIPE: 32,
-    EPROTO: 71,
-    EPROTONOSUPPORT: 93,
-    EPROTOTYPE: 91,
-    ERANGE: 34,
-    EROFS: 30,
-    ESPIPE: 29,
-    ESRCH: 3,
-    ESTALE: 116,
-    ETIME: 62,
-    ETIMEDOUT: 110,
-    ETXTBSY: 26,
-    EWOULDBLOCK: 11,
-    EXDEV: 18
-};
+// var ERRNO_CODES = {
+//     E2BIG: 7,
+//     EACCES: 13,
+//     EADDRINUSE: 98,
+//     EADDRNOTAVAIL: 99,
+//     EAFNOSUPPORT: 97,
+//     EAGAIN: 11,
+//     EALREADY: 114,
+//     EBADF: 9,
+//     EBADMSG: 74,
+//     EBUSY: 16,
+//     ECANCELED: 125,
+//     ECHILD: 10,
+//     ECONNABORTED: 103,
+//     ECONNREFUSED: 111,
+//     ECONNRESET: 104,
+//     EDEADLK: 35,
+//     EDESTADDRREQ: 89,
+//     EDOM: 33,
+//     EDQUOT: 122,
+//     EEXIST: 17,
+//     EFAULT: 14,
+//     EFBIG: 27,
+//     EHOSTUNREACH: 113,
+//     EIDRM: 43,
+//     EILSEQ: 84,
+//     EINPROGRESS: 115,
+//     EINTR: 4,
+//     EINVAL: 22,
+//     EIO: 5,
+//     EISCONN: 106,
+//     EISDIR: 21,
+//     ELOOP: 40,
+//     EMFILE: 24,
+//     EMLINK: 31,
+//     EMSGSIZE: 90,
+//     EMULTIHOP: 72,
+//     ENAMETOOLONG: 36,
+//     ENETDOWN: 100,
+//     ENETRESET: 102,
+//     ENETUNREACH: 101,
+//     ENFILE: 23,
+//     ENOBUFS: 105,
+//     ENODATA: 61,
+//     ENODEV: 19,
+//     ENOENT: 2,
+//     ENOEXEC: 8,
+//     ENOLCK: 37,
+//     ENOLINK: 67,
+//     ENOMEM: 12,
+//     ENOMSG: 42,
+//     ENOPROTOOPT: 92,
+//     ENOSPC: 28,
+//     ENOSR: 63,
+//     ENOSTR: 60,
+//     ENOSYS: 38,
+//     ENOTCONN: 107,
+//     ENOTDIR: 20,
+//     ENOTEMPTY: 39,
+//     ENOTRECOVERABLE: 131,
+//     ENOTSOCK: 88,
+//     ENOTSUP: 95,
+//     ENOTTY: 25,
+//     ENXIO: 6,
+//     EOVERFLOW: 75,
+//     EOWNERDEAD: 130,
+//     EPERM: 1,
+//     EPIPE: 32,
+//     EPROTO: 71,
+//     EPROTONOSUPPORT: 93,
+//     EPROTOTYPE: 91,
+//     ERANGE: 34,
+//     EROFS: 30,
+//     ESPIPE: 29,
+//     ESRCH: 3,
+//     ESTALE: 116,
+//     ETIME: 62,
+//     ETIMEDOUT: 110,
+//     ETXTBSY: 26,
+//     EWOULDBLOCK: 11,
+//     EXDEV: 18
+// };
 
 var _stdout = allocate (1, "i32*", ALLOC_STACK,0);
 
@@ -1765,7 +1810,7 @@ function _printf (format, varargs)
     return _fprintf (stdout, format, varargs);
 }
 
-var _abs = Math.abs;
+//var _abs = Math.abs;
 
 function _memcpy (dest, src, num)
 {
@@ -1802,7 +1847,7 @@ function _memcpy (dest, src, num)
     return ret | 0;
 }
 
-var _llvm_memcpy_p0i8_p0i8_i32 = _memcpy;
+// var _llvm_memcpy_p0i8_p0i8_i32 = _memcpy;
 
 function _abort ()
 {
@@ -2005,45 +2050,45 @@ function _sbrk (bytes)
     return ret;  // Previous break location.
 }
 
-function _memset (ptr, value, num)
-{
-    ptr = ptr | 0;
-    value = value | 0;
-    num = num | 0;
-    var stop = 0, value4 = 0, stop4 = 0, unaligned = 0;
-    stop = (ptr + num) | 0;
-    if ((num | 0) >= 20)
-    {
-        // This is unaligned, but quite large, so work hard to get to aligned settings
-        value = value & 0xff;
-        unaligned = ptr & 3;
-        value4 = value | (value << 8) | (value << 16) | (value << 24);
-        stop4 = stop & ~3;
-        if (unaligned)
-        {
-            unaligned = (ptr + 4 - unaligned) | 0;
-            while ((ptr | 0) < (unaligned | 0))
-            { // no need to check for stop, since we have large num
-                HEAP8[(ptr)] = value;
-                ptr = (ptr + 1) | 0;
-            }
-        }
-        while ((ptr | 0) < (stop4 | 0))
-        {
-            HEAP32[((ptr) >> 2)] = value4;
-            ptr = (ptr + 4) | 0;
-        }
-    }
-    while ((ptr | 0) < (stop | 0))
-    {
-        HEAP8[(ptr)] = value;
-        ptr = (ptr + 1) | 0;
-    }
-}
-
-function _free ()
-{
-}
+// function _memset (ptr, value, num)
+// {
+//     ptr = ptr | 0;
+//     value = value | 0;
+//     num = num | 0;
+//     var stop = 0, value4 = 0, stop4 = 0, unaligned = 0;
+//     stop = (ptr + num) | 0;
+//     if ((num | 0) >= 20)
+//     {
+//         // This is unaligned, but quite large, so work hard to get to aligned settings
+//         value = value & 0xff;
+//         unaligned = ptr & 3;
+//         value4 = value | (value << 8) | (value << 16) | (value << 24);
+//         stop4 = stop & ~3;
+//         if (unaligned)
+//         {
+//             unaligned = (ptr + 4 - unaligned) | 0;
+//             while ((ptr | 0) < (unaligned | 0))
+//             { // no need to check for stop, since we have large num
+//                 HEAP8[(ptr)] = value;
+//                 ptr = (ptr + 1) | 0;
+//             }
+//         }
+//         while ((ptr | 0) < (stop4 | 0))
+//         {
+//             HEAP32[((ptr) >> 2)] = value4;
+//             ptr = (ptr + 4) | 0;
+//         }
+//     }
+//     while ((ptr | 0) < (stop | 0))
+//     {
+//         HEAP8[(ptr)] = value;
+//         ptr = (ptr + 1) | 0;
+//     }
+// }
+//
+// function _free ()
+// {
+// }
 
 __ATINIT__.unshift ({
     func: function ()
@@ -2081,55 +2126,55 @@ function _GetBufferLength ()
     return $1;
 }
 
-function _SetSpeed ($_speed)
-{
-    var label = 0;
-    var $1;
-    $1 = $_speed;
-    var $2 = $1;
-    HEAP8[(5244336)] = $2;
-    return;
-}
-
-function _SetPitch ($_pitch)
-{
-    var label = 0;
-    var $1;
-    $1 = $_pitch;
-    var $2 = $1;
-    HEAP8[(5252564)] = $2;
-    return;
-}
-
-function _SetMouth ($_mouth)
-{
-    var label = 0;
-    var $1;
-    $1 = $_mouth;
-    var $2 = $1;
-    HEAP8[(5253644)] = $2;
-    return;
-}
-
-function _SetThroat ($_throat)
-{
-    var label = 0;
-    var $1;
-    $1 = $_throat;
-    var $2 = $1;
-    HEAP8[(5242988)] = $2;
-    return;
-}
-
-function _EnableSingmode ($sing)
-{
-    var label = 0;
-    var $1;
-    $1 = $sing;
-    var $2 = $1;
-    HEAP32[((5244596) >> 2)] = $2;
-    return;
-}
+// function _SetSpeed ($_speed)
+// {
+//     var label = 0;
+//     var $1;
+//     $1 = $_speed;
+//     var $2 = $1;
+//     HEAP8[(5244336)] = $2;
+//     return;
+// }
+//
+// function _SetPitch ($_pitch)
+// {
+//     var label = 0;
+//     var $1;
+//     $1 = $_pitch;
+//     var $2 = $1;
+//     HEAP8[(5252564)] = $2;
+//     return;
+// }
+//
+// function _SetMouth ($_mouth)
+// {
+//     var label = 0;
+//     var $1;
+//     $1 = $_mouth;
+//     var $2 = $1;
+//     HEAP8[(5253644)] = $2;
+//     return;
+// }
+//
+// function _SetThroat ($_throat)
+// {
+//     var label = 0;
+//     var $1;
+//     $1 = $_throat;
+//     var $2 = $1;
+//     HEAP8[(5242988)] = $2;
+//     return;
+// }
+//
+// function _EnableSingmode ($sing)
+// {
+//     var label = 0;
+//     var $1;
+//     $1 = $sing;
+//     var $2 = $1;
+//     HEAP32[((5244596) >> 2)] = $2;
+//     return;
+// }
 
 function _Insert ($position, $mem60, $mem59, $mem58)
 {
@@ -18160,38 +18205,7 @@ var shouldRunNow = true;
 // {{POST_RUN_ADDITIONS}}
 // {{MODULE_ADDITIONS}}
 
-function __init()
-{
-    // TOTAL_STACK = 5242880;
-    // TOTAL_MEMORY = 16777216;
-    // FAST_MEMORY = 2097152;
-    // buffer = new ArrayBuffer (TOTAL_MEMORY);
-    // HEAP8 = new Int8Array (buffer);
-    // HEAP16 = new Int16Array (buffer);
-    // HEAP32 = new Int32Array (buffer);
-    // HEAPU8 = new Uint8Array (buffer);
-    // HEAPU16 = new Uint16Array (buffer);
-    // HEAPU32 = new Uint32Array (buffer);
-    // HEAPF32 = new Float32Array (buffer);
-    // HEAPF64 = new Float64Array (buffer);
-    // HEAP32[0] = 255;
-    // STACK_ROOT = STACKTOP = Runtime.alignMemory (1);
-    // STACK_MAX = TOTAL_STACK; // we lose a little stack here, but TOTAL_STACK is nice and round so use that as the max
-    // tempDoublePtr = Runtime.alignMemory (allocate (12, 'i8', ALLOC_STACK), 8);
 
-    for (let s=0; s<16777216; s++)
-        HEAPU8[s] = 0;
-    _Init();
-}
+module.exports.playSam = playSam;
 
-
-module.exports.__init = __init;
-module.exports.allocate = allocate;
-module.exports.intArrayFromString = intArrayFromString;
-module.exports._TextToPhonemes = _TextToPhonemes;
-module.exports._SetInput = _SetInput;
-module.exports._Code39771 = _Code39771;
-module.exports._GetBufferLength = _GetBufferLength;
-module.exports._GetBuffer = _GetBuffer;
-module.exports.getValue = getValue;
-module.exports._malloc = _malloc;
+playSam (process.argv[2]);

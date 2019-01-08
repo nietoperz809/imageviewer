@@ -15,13 +15,17 @@
     "morgan": "~1.9.0",
     "mustache": "2.3.2",
     "node-gallery": "^1.1.0",
+    "node-thumbnail": "^0.14.0",
     "prompt-sync": "^4.1.6",
     "pug": "2.0.0-beta11",
     "readline-sync": "^1.4.9",
     "robotjs": "^0.5.1",
+    "sam-js": "0.0.2",
+    "speaker": "^0.4.1",
     "uuid": "^3.3.2",
     "wait-for-stuff": "^1.4.0",
     "wait-for-user-input": "^1.0.0",
+    "web-audio-api": "^0.2.2",
     "wwwbasic": "^1.0.0"
   }
 }

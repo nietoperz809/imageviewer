@@ -1,14 +1,17 @@
 var express = require ('express');
 var fs = require ('fs');
 var path = require ('path');
-var app = express ();
 var mustache = require ('mustache');
 var urlParser = require ('url');
-var template = fs.readFileSync (__dirname + '\\res\\template.html').toString ();
 var getPayload = require (__dirname + '\\res\\get_payload');
 var stack = require (__dirname + '\\res\\stack');
 var cookieParser = require ('cookie-parser');
 var session = require ('express-session');
+//var thumb = require('node-thumbnail').thumb;
+
+
+var app = express ();
+var template = fs.readFileSync (__dirname + '\\res\\template.html').toString ();
 
 app.use (cookieParser ());
 app.use (session ({
@@ -22,7 +25,7 @@ mustache.parse (template);
 var paths = {
     photos: process.argv[2],
     previews: null,
-    thumbs: null,
+    thumbs: process.argv[2]+'/thumbnails',
 };
 
 console.log ('root dir: ' + process.argv[2]);
@@ -109,6 +112,17 @@ function saveSession (req)
     req.session.phot = paths.photos;
 }
 
+// function generateThumbs()
+// {
+//     thumb({
+//         source: paths.photos,
+//         destination: paths.photos+'/thumbnails',
+//         concurrency: 2
+//     }, function(files, err, stdout, stderr) {
+//         console.log('All done!');
+//     });
+// }
+
 app.get ('/back', function (req, res)
 {
     loadSession (req);
@@ -126,6 +140,7 @@ app.get ('/hsh*', function (req, res)
     var dec = decodeURIComponent (req.url.substring (4));
     stack.push (paths.photos);
     paths.photos = paths.photos + "\\" + dec;
+    //generateThumbs();
     saveSession (req);
     res.redirect ('/nav.html');
 });
