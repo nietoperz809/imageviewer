@@ -10,7 +10,7 @@ context.outStream = new Speaker({
 
 function SamJS()
 {
-   this.playSam = function (speech)
+    this.playSam = function (speech)
     {
         let ret = intArrayFromString (speech);
         let ptr = allocate (ret, 'i8', 3, 28); // 1, 0
@@ -34,15 +34,15 @@ function SamJS()
         source.connect (context.destination);
         source.start (0);
 
-        source.onended = function ()
-        {
-            function myFunc (arg)
-            {
-                process.exit (0);
-            }
-
-            setTimeout (myFunc, process.argv[2].length * 80, 'funky');
-        }
+        // source.onended = function ()
+        // {
+        //     function myFunc (arg)
+        //     {
+        //         process.exit (0);
+        //     }
+        //
+        //     setTimeout (myFunc, process.argv[2].length * 80, 'funky');
+        // }
     }
 
 //========================================
@@ -56,21 +56,6 @@ function SamJS()
         stackRestore: function (stackTop)
         {
             STACKTOP = stackTop;
-        },
-        forceAlign: function (target, quantum)
-        {
-            quantum = quantum || 4;
-            if (quantum == 1) return target;
-            if (isNumber (target) && isNumber (quantum))
-            {
-                return Math.ceil (target / quantum) * quantum;
-            }
-            else if (isNumber (quantum) && isPowerOfTwo (quantum))
-            {
-                var logg = log2 (quantum);
-                return '((((' + target + ')+' + (quantum - 1) + ')>>' + logg + ')<<' + logg + ')';
-            }
-            return 'Math.ceil((' + target + ')/' + quantum + ')*' + quantum;
         },
         isNumberType: function (type)
         {
@@ -90,24 +75,6 @@ function SamJS()
         },
         INT_TYPES: {"i1": 0, "i8": 0, "i16": 0, "i32": 0, "i64": 0},
         FLOAT_TYPES: {"float": 0, "double": 0},
-        or64: function (x, y)
-        {
-            var l = (x | 0) | (y | 0);
-            var h = (Math.round (x / 4294967296) | Math.round (y / 4294967296)) * 4294967296;
-            return l + h;
-        },
-        and64: function (x, y)
-        {
-            var l = (x | 0) & (y | 0);
-            var h = (Math.round (x / 4294967296) & Math.round (y / 4294967296)) * 4294967296;
-            return l + h;
-        },
-        xor64: function (x, y)
-        {
-            var l = (x | 0) ^ (y | 0);
-            var h = (Math.round (x / 4294967296) ^ Math.round (y / 4294967296)) * 4294967296;
-            return l + h;
-        },
         getNativeTypeSize: function (type, quantumSize)
         {
             if (Runtime.QUANTUM_SIZE == 1) return 1;
@@ -135,10 +102,6 @@ function SamJS()
                 }
             }
             return size;
-        },
-        getNativeFieldSize: function (type)
-        {
-            return Math.max (Runtime.getNativeTypeSize (type), Runtime.QUANTUM_SIZE);
         },
         dedup: function dedup (items, ident)
         {
@@ -291,20 +254,6 @@ function SamJS()
                 return FUNCTION_TABLE[ptr] ();
             }
         },
-        addFunction: function (func, sig)
-        {
-            //assert(sig); // TODO: support asm
-            var table = FUNCTION_TABLE; // TODO: support asm
-            var ret = table.length;
-            table.push (func);
-            table.push (0);
-            return ret;
-        },
-        removeFunction: function (index)
-        {
-            var table = FUNCTION_TABLE; // TODO: support asm
-            table[index] = null;
-        },
         warnOnce: function (text)
         {
             if (!Runtime.warnOnce.shown) Runtime.warnOnce.shown = {};
@@ -315,18 +264,6 @@ function SamJS()
             }
         },
         funcWrappers: {},
-        getFuncWrapper: function (func, sig)
-        {
-            assert (sig);
-            if (!Runtime.funcWrappers[func])
-            {
-                Runtime.funcWrappers[func] = function ()
-                {
-                    Runtime.dynCall (sig, func, arguments);
-                };
-            }
-            return Runtime.funcWrappers[func];
-        },
         UTF8Processor: function ()
         {
             var buffer = [];
@@ -402,20 +339,12 @@ function SamJS()
             var ret = size = Math.ceil ((size) / (quantum ? quantum : 4)) * (quantum ? quantum : 4);
             return ret;
         },
-        makeBigInt: function (low, high, unsigned)
-        {
-            var ret = (unsigned ? (((low) >>> (0)) + (((high) >>> (0)) * 4294967296)) : (((low) >>> (0)) + (((high) | (0)) * 4294967296)));
-            return ret;
-        },
         QUANTUM_SIZE: 4,
         __dummy__: 0
     }
     var ABORT = false;
-    var tempValue, tempInt, tempBigInt, tempInt2, tempBigInt2, tempPair, tempBigIntI, tempBigIntR, tempBigIntS,
-        tempBigIntP,
-        tempBigIntD;
-    var tempI64, tempI64b;
-    var tempRet0, tempRet1, tempRet2, tempRet3, tempRet4, tempRet5, tempRet6, tempRet7, tempRet8, tempRet9;
+    var tempInt;
+    var tempI64;
 
     function abort (text)
     {
@@ -432,66 +361,6 @@ function SamJS()
     }
 
     var globalScope = this;
-
-// Returns the C function with a specified identifier (for C++, you need to do manual name mangling)
-    function getCFunc (ident)
-    {
-        try
-        {
-            var func = globalScope['Module']['_' + ident]; // closure exported function
-            if (!func) func = eval ('_' + ident); // explicit lookup
-        }
-        catch (e)
-        {
-        }
-        assert (func, 'Cannot call unknown function ' + ident + ' (perhaps LLVM optimizations or closure removed it?)');
-        return func;
-    }
-
-// Internal function that does a C call using a function, not an identifier
-    function ccallFunc (func, returnType, argTypes, args)
-    {
-        var stack = 0;
-
-        function toC (value, type)
-        {
-            if (type == 'string')
-            {
-                if (value === null || value === undefined || value === 0) return 0; // null string
-                if (!stack) stack = Runtime.stackSave ();
-                var ret = Runtime.stackAlloc (value.length + 1);
-                writeStringToMemory (value, ret);
-                return ret;
-            }
-            else if (type == 'array')
-            {
-                if (!stack) stack = Runtime.stackSave ();
-                var ret = Runtime.stackAlloc (value.length);
-                writeArrayToMemory (value, ret);
-                return ret;
-            }
-            return value;
-        }
-
-        function fromC (value, type)
-        {
-            if (type == 'string')
-            {
-                return Pointer_stringify (value);
-            }
-            assert (type != 'array');
-            return value;
-        }
-
-        var i = 0;
-        var cArgs = args ? args.map (function (arg)
-        {
-            return toC (arg, argTypes[i++]);
-        }) : [];
-        var ret = fromC (func.apply (null, cArgs), returnType);
-        if (stack) Runtime.stackRestore (stack);
-        return ret;
-    }
 
     function setValue (ptr, value, type, noSafe)
     {
@@ -17195,5 +17064,7 @@ function SamJS()
     }
 }
 
-sam = new SamJS();
-sam.playSam (process.argv[2]);
+module.exports.SamJS = SamJS;
+
+// sam = new SamJS();
+// sam.playSam (process.argv[2]);

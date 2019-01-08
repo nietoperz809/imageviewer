@@ -1,29 +1,15 @@
-// const sam = require('./sam');
-var fork = require('child_process').fork;
+const sam = require('./sam');
 
-var running = false;
-var count = 0;
-
-function runChild()
-{
-    console.log ('starting child');
-    let child = fork('./scripts/sam', ['peter ist lieb']);
-    running = true;
-    child.on('exit', (code) =>
-    {
-        console.log ('child gone');
-        running = false;
-    });
-}
+let count = 0;
 
 function intervalFunc()
 {
-    if (running === false)
-        runChild();
+    let jss = new sam.SamJS();
+    jss.playSam('hello world');
     process.stdout.write("Tick: "+count+'\n');
     count++;
 }
 
-setInterval(intervalFunc, 500);
+setInterval(intervalFunc, 2000);
 
 

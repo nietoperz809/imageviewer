@@ -19,6 +19,7 @@
  last update: Thu May 27 00:42:16 EDT 2010
  */
 
+const sam = require('./sam');
 
 function Token (text, type)
 {
@@ -133,7 +134,7 @@ function Tokenizer (input)
 
     this.tokenize = function ()
     {
-        var keywords = /^(IF|THEN|ELSE|FOR|TO|RESTORE|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
+        var keywords = /^(IF|THEN|ELSE|FOR|TO|RESTORE|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|SAY|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
         var functions = /^(VAL|PI|STR\$|TI\$|LEFT\$|RIGHT\$|MID\$|LEN|RND|INT|INSTR|ABS|ASC|CHR\$|SQR|STRING\$|SIN|COS|TAN|TIMER)$/i;
         var i = 0;
         this.error = false;
@@ -1279,8 +1280,33 @@ function Parser (text)
         var node = new Node ("PRINT");
         while (self.hasMoreTokens ())
         {
+            if (self.end_of_statement ())
+                break;
 
+            if (self.accept ("KEYWORD"))
+            {
+                throw "ERROR: unexpected keyword " + self.lastText ();
+            }
+            if (self.accept ("DELIMITER"))
+            {
+                node.addChild (new Node ("DELIMITER", self.lastText ()));
+            }
 
+            if (self.end_of_statement ())
+                break;
+
+            var ch = self.expression ();
+            node.addChild (ch);
+        }
+
+        return node;
+    };
+
+    this.say_statement = function (self)
+    {
+        var node = new Node ("SAY");
+        while (self.hasMoreTokens ())
+        {
             if (self.end_of_statement ())
                 break;
 
@@ -1400,6 +1426,7 @@ function Parser (text)
     }
 
     this.functions["PRINT"] = this.print_statement;
+    this.functions["SAY"] = this.say_statement;
     this.functions["INPUT"] = this.input_statement;
     this.functions["DIM"] = this.dim_statement;
     this.functions["IF"] = this.if_statement;
@@ -2182,6 +2209,44 @@ function Interpreter (parser)
         return idx + 1;
     }
 
+    this.say_statement = function (self, idx)  // TODO: make it!
+    {
+        var statement = self.parser.statements[idx];
+        var count = statement.children.length;
+        debug ("SAYING " + count);
+        var result = "";
+        for (var i = 0; i < count; i++)
+        {
+            var child = statement.children[i];
+            if (child.getType () === "EXPRESSION")
+            {
+                var res = self.evalExpr (child);
+                result += res;
+            }
+            if (child.getType () == "DELIMITER")
+            {
+                var t = child.text;
+                if (t == ",")
+                    result += "   ";
+            }
+        }
+
+        var eol = true;
+
+        if (count > 0 && statement.children[count - 1].text == ";")
+        {
+            eol = false;
+        }
+
+        let jss = new sam.SamJS();
+        jss.playSam (result);
+
+        //if (self.print_function)
+        //    self.print_function (result, eol);
+
+        return idx + 1;
+    }
+
     this.cls_statement = function (self, idx)
     {
         var statement = self.parser.statements[idx];
@@ -2659,6 +2724,7 @@ function Interpreter (parser)
 
     this.last_random = this.random.random ();
     this.ifunctions["PRINT"] = this.print_statement;
+    this.ifunctions["SAY"] = this.say_statement;
     this.ifunctions["INPUT"] = this.input_statement;
     this.ifunctions["ASSIGNMENT"] = this.assignment_statement;
     this.ifunctions["IF"] = this.if_statement;
