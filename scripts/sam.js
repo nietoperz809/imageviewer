@@ -1,3 +1,8 @@
+
+
+const wait = require ('wait-for-stuff');
+const events = require('events');
+
 const AudioContext = require('web-audio-api').AudioContext
     , context = new AudioContext
     , Speaker = require('speaker')
@@ -10,6 +15,8 @@ context.outStream = new Speaker({
 
 function SamJS()
 {
+    const eventEmitter = new events.EventEmitter();
+
     this.playSam = function (speech)
     {
         let ret = intArrayFromString (speech);
@@ -34,15 +41,11 @@ function SamJS()
         source.connect (context.destination);
         source.start (0);
 
-        // source.onended = function ()
-        // {
-        //     function myFunc (arg)
-        //     {
-        //         process.exit (0);
-        //     }
-        //
-        //     setTimeout (myFunc, process.argv[2].length * 80, 'funky');
-        // }
+        source.onended = function ()
+        {
+            eventEmitter.emit('scream');
+        }
+        let eventData = wait.for.event (eventEmitter, 'scream');
     }
 
 //========================================
