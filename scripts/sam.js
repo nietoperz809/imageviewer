@@ -15,10 +15,10 @@ context.outStream = new Speaker({
 
 function SamJS()
 {
-    const eventEmitter = new events.EventEmitter();
-
     this.playSam = function (speech)
     {
+        const eventEmitter = new events.EventEmitter();
+
         let ret = intArrayFromString (speech);
         let ptr = allocate (ret, 'i8', 3, 28); // 1, 0
 
@@ -29,12 +29,12 @@ function SamJS()
         let bufferlength = Math.floor (_GetBufferLength () / 50);
         let bufferptr = _GetBuffer ();
 
-        var source = context.createBufferSource ();
+        let source = context.createBufferSource ();
 
-        var soundBuffer = context.createBuffer (1, bufferlength, 44100);
+        let soundBuffer = context.createBuffer (1, bufferlength, 44100);
 
-        var buffer = soundBuffer.getChannelData (0);
-        for (var i = 0; i < bufferlength; i++)
+        let buffer = soundBuffer.getChannelData (0);
+        for (let i = 0; i < bufferlength; i++)
             buffer[i] = ((getValue (bufferptr + i, 'i8') & 0xFF) - 128) / 256;
 
         source.buffer = soundBuffer;
@@ -43,9 +43,13 @@ function SamJS()
 
         source.onended = function ()
         {
-            eventEmitter.emit('scream');
+            function myFunc (arg)
+            {
+                eventEmitter.emit('scream');
+            }
+            setTimeout (myFunc, speech.length * 80, 'funky');
         }
-        let eventData = wait.for.event (eventEmitter, 'scream');
+        wait.for.event (eventEmitter, 'scream');
     }
 
 //========================================
