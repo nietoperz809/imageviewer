@@ -43,11 +43,11 @@ function SamJS()
 
         source.onended = function ()
         {
-            function myFunc (arg)
+            function myFunc()
             {
                 eventEmitter.emit('scream');
             }
-            setTimeout (myFunc, speech.length * 80, 'funky');
+            setTimeout (myFunc, speech.length * 80);
         }
         wait.for.event (eventEmitter, 'scream');
     }
@@ -367,8 +367,6 @@ function SamJS()
         }
     }
 
-    var globalScope = this;
-
     function setValue (ptr, value, type, noSafe)
     {
         type = type || 'i8';
@@ -428,10 +426,10 @@ function SamJS()
         return null;
     }
 
-    var ALLOC_NORMAL = 0; // Tries to use _malloc()
-    var ALLOC_STACK = 1; // Lives for the duration of the current function call
-    var ALLOC_STATIC = 2; // Cannot be freed
-    var ALLOC_NONE = 3; // Do not allocate
+    const ALLOC_NORMAL = 0; // Tries to use _malloc()
+    const ALLOC_STACK = 1; // Lives for the duration of the current function call
+    const ALLOC_STATIC = 2; // Cannot be freed
+    const ALLOC_NONE = 3; // Do not allocate
 // allocate(): This is for internal use. You can use it yourself as well, but the interface
 //             is a little tricky (see docs right below). The reason is that it is optimized
 //             for multiple syntaxes to save space in generated code. So you should
@@ -520,45 +518,6 @@ function SamJS()
         return ret;
     }
 
-    function Pointer_stringify (ptr, /* optional */ length)
-    {
-        // Find the length, and check for UTF while doing so
-        var hasUtf = false;
-        var t;
-        var i = 0;
-        while (1)
-        {
-            t = HEAPU8[(((ptr) + (i)) | 0)];
-            if (t >= 128) hasUtf = true;
-            else if (t == 0 && !length) break;
-            i++;
-            if (length && i == length) break;
-        }
-        if (!length) length = i;
-        var ret = '';
-        if (!hasUtf)
-        {
-            var MAX_CHUNK = 1024; // split up into chunks, because .apply on a huge string can overflow the stack
-            var curr;
-            while (length > 0)
-            {
-                curr = String.fromCharCode.apply (String, HEAPU8.subarray (ptr, ptr + Math.min (length, MAX_CHUNK)));
-                ret = ret ? ret + curr : curr;
-                ptr += MAX_CHUNK;
-                length -= MAX_CHUNK;
-            }
-            return ret;
-        }
-        var utf8 = new Runtime.UTF8Processor ();
-        for (i = 0; i < length; i++)
-        {
-            assert (ptr + i < TOTAL_MEMORY);
-            t = HEAPU8[(((ptr) + (i)) | 0)];
-            ret += utf8.processCChar (t);
-        }
-        return ret;
-    }
-
 // Memory management
     var PAGE_SIZE = 4096;
 
@@ -567,8 +526,7 @@ function SamJS()
         return ((x + 4095) >> 12) << 12;
     }
 
-    var HEAP;
-    var HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
+    var HEAP8, HEAPU8, HEAP16, HEAP32, HEAPF32, HEAPF64;
     var STACK_ROOT, STACKTOP, STACK_MAX;
     var STATICTOP;
 
@@ -588,8 +546,6 @@ function SamJS()
     HEAP16 = new Int16Array (buffer);
     HEAP32 = new Int32Array (buffer);
     HEAPU8 = new Uint8Array (buffer);
-    HEAPU16 = new Uint16Array (buffer);
-    HEAPU32 = new Uint32Array (buffer);
     HEAPF32 = new Float32Array (buffer);
     HEAPF64 = new Float64Array (buffer);
 // Endianness check (note: assumes compiler arch was little-endian)
@@ -601,80 +557,42 @@ function SamJS()
         Runtime.alignMemory (allocate (12, 'i8', ALLOC_STACK, 0), 8);
     assert (tempDoublePtr % 8 === 0);
 
-    function copyTempFloat (ptr)
-    { // functions, because inlining this code increases code size too much
-        HEAP8[tempDoublePtr] = HEAP8[ptr];
-        HEAP8[tempDoublePtr + 1] = HEAP8[ptr + 1];
-        HEAP8[tempDoublePtr + 2] = HEAP8[ptr + 2];
-        HEAP8[tempDoublePtr + 3] = HEAP8[ptr + 3];
-    }
-
-    function copyTempDouble (ptr)
-    {
-        HEAP8[tempDoublePtr] = HEAP8[ptr];
-        HEAP8[tempDoublePtr + 1] = HEAP8[ptr + 1];
-        HEAP8[tempDoublePtr + 2] = HEAP8[ptr + 2];
-        HEAP8[tempDoublePtr + 3] = HEAP8[ptr + 3];
-        HEAP8[tempDoublePtr + 4] = HEAP8[ptr + 4];
-        HEAP8[tempDoublePtr + 5] = HEAP8[ptr + 5];
-        HEAP8[tempDoublePtr + 6] = HEAP8[ptr + 6];
-        HEAP8[tempDoublePtr + 7] = HEAP8[ptr + 7];
-    }
-
     STATICTOP = STACK_MAX;
     assert (STATICTOP < TOTAL_MEMORY); // Stack must fit in TOTAL_MEMORY; allocations from here on may enlarge TOTAL_MEMORY
-    var nullString = allocate (intArrayFromString ('(null)'), 'i8', ALLOC_STACK, 0);
 
-    function callRuntimeCallbacks (callbacks)
-    {
-        while (callbacks.length > 0)
-        {
-            var callback = callbacks.shift ();
-            if (typeof callback == 'function')
-            {
-                callback ();
-                continue;
-            }
-            var func = callback.func;
-            if (typeof func === 'number')
-            {
-                if (callback.arg === undefined)
-                {
-                    Runtime.dynCall ('v', func);
-                }
-                else
-                {
-                    Runtime.dynCall ('vi', func, [callback.arg]);
-                }
-            }
-            else
-            {
-                func (callback.arg === undefined ? null : callback.arg);
-            }
-        }
-    }
+    // function callRuntimeCallbacks (callbacks)
+    // {
+    //     while (callbacks.length > 0)
+    //     {
+    //         var callback = callbacks.shift ();
+    //         if (typeof callback == 'function')
+    //         {
+    //             callback ();
+    //             continue;
+    //         }
+    //         var func = callback.func;
+    //         if (typeof func === 'number')
+    //         {
+    //             if (callback.arg === undefined)
+    //             {
+    //                 Runtime.dynCall ('v', func);
+    //             }
+    //             else
+    //             {
+    //                 Runtime.dynCall ('vi', func, [callback.arg]);
+    //             }
+    //         }
+    //         else
+    //         {
+    //             func (callback.arg === undefined ? null : callback.arg);
+    //         }
+    //     }
+    // }
 
     var __ATINIT__ = []; // functions called during startup
     var __ATMAIN__ = []; // functions called when main() is to be run
     var __ATEXIT__ = []; // functions called during shutdown
-    var runtimeInitialized = false;
-
-    function ensureInitRuntime ()
-    {
-        if (runtimeInitialized) return;
-        runtimeInitialized = true;
-        callRuntimeCallbacks (__ATINIT__);
-    }
-
-    function preMain ()
-    {
-        callRuntimeCallbacks (__ATMAIN__);
-    }
-
-    function exitRuntime ()
-    {
-        callRuntimeCallbacks (__ATEXIT__);
-    }
+//    var runtimeInitialized = false;
 
 // Tools
 // This processes a JS string into a C-line array of numbers, 0-terminated.
@@ -693,70 +611,41 @@ function SamJS()
         return ret;
     }
 
-    function intArrayToString (array)
-    {
-        var ret = [];
-        for (var i = 0; i < array.length; i++)
-        {
-            var chr = array[i];
-            if (chr > 0xFF)
-            {
-                assert (false, 'Character code ' + chr + ' (' + String.fromCharCode (chr) + ')  at offset ' + i + ' not in 0x00-0xFF.');
-                chr &= 0xFF;
-            }
-            ret.push (String.fromCharCode (chr));
-        }
-        return ret.join ('');
-    }
+    // function writeArrayToMemory (array, buffer)
+    // {
+    //     for (var i = 0; i < array.length; i++)
+    //     {
+    //         HEAP8[(((buffer) + (i)) | 0)] = array[i];
+    //     }
+    // }
+    //
+    // function unSign (value, bits, ignore, sig)
+    // {
+    //     if (value >= 0)
+    //     {
+    //         return value;
+    //     }
+    //     return bits <= 32 ? 2 * Math.abs (1 << (bits - 1)) + value // Need some trickery, since if bits == 32, we are right at the
+    //                                                                // limit of the bits JS uses in bitshifts
+    //         : Math.pow (2, bits) + value;
+    // }
 
-// Write a Javascript array to somewhere in the heap
-    function writeStringToMemory (string, buffer, dontAddNull)
-    {
-        var array = intArrayFromString (string, dontAddNull);
-        var i = 0;
-        while (i < array.length)
-        {
-            var chr = array[i];
-            HEAP8[(((buffer) + (i)) | 0)] = chr
-            i = i + 1;
-        }
-    }
-
-    function writeArrayToMemory (array, buffer)
-    {
-        for (var i = 0; i < array.length; i++)
-        {
-            HEAP8[(((buffer) + (i)) | 0)] = array[i];
-        }
-    }
-
-    function unSign (value, bits, ignore, sig)
-    {
-        if (value >= 0)
-        {
-            return value;
-        }
-        return bits <= 32 ? 2 * Math.abs (1 << (bits - 1)) + value // Need some trickery, since if bits == 32, we are right at the
-                                                                   // limit of the bits JS uses in bitshifts
-            : Math.pow (2, bits) + value;
-    }
-
-    function reSign (value, bits, ignore, sig)
-    {
-        if (value <= 0)
-        {
-            return value;
-        }
-        var half = bits <= 32 ? Math.abs (1 << (bits - 1)) // abs is needed if bits == 32
-            : Math.pow (2, bits - 1);
-        if (value >= half && (bits <= 32 || value > half))
-        { // for huge values, we can hit the precision limit and always get true here. so don't do that
-            // but, in general there is no perfect solution here. With 64-bit ints, we get rounding and errors
-            // TODO: In i64 mode 1, resign the two parts separately and safely
-            value = -2 * half + value; // Cannot bitshift half, as it may be at the limit of the bits JS uses in bitshifts
-        }
-        return value;
-    }
+    // function reSign (value, bits, ignore, sig)
+    // {
+    //     if (value <= 0)
+    //     {
+    //         return value;
+    //     }
+    //     var half = bits <= 32 ? Math.abs (1 << (bits - 1)) // abs is needed if bits == 32
+    //         : Math.pow (2, bits - 1);
+    //     if (value >= half && (bits <= 32 || value > half))
+    //     { // for huge values, we can hit the precision limit and always get true here. so don't do that
+    //         // but, in general there is no perfect solution here. With 64-bit ints, we get rounding and errors
+    //         // TODO: In i64 mode 1, resign the two parts separately and safely
+    //         value = -2 * half + value; // Cannot bitshift half, as it may be at the limit of the bits JS uses in bitshifts
+    //     }
+    //     return value;
+    // }
 
     if (!Math.imul) Math.imul = function (a, b)
     {
@@ -775,47 +664,47 @@ function SamJS()
 // the dependencies are met.
     var runDependencies = 0;
     var runDependencyTracking = {};
-    var calledInit = false, calledRun = false;
+//    var calledInit = false, calledRun = false;
     var runDependencyWatcher = null;
 
-    function addRunDependency (id)
-    {
-        runDependencies++;
-        if (Module['monitorRunDependencies'])
-        {
-            Module['monitorRunDependencies'] (runDependencies);
-        }
-        if (id)
-        {
-            assert (!runDependencyTracking[id]);
-            runDependencyTracking[id] = 1;
-            if (runDependencyWatcher === null && typeof setInterval !== 'undefined')
-            {
-                // Check for missing dependencies every few seconds
-                runDependencyWatcher = setInterval (function ()
-                {
-                    var shown = false;
-                    for (var dep in runDependencyTracking)
-                    {
-                        if (!shown)
-                        {
-                            shown = true;
-                            Module.printErr ('still waiting on run dependencies:');
-                        }
-                        Module.printErr ('dependency: ' + dep);
-                    }
-                    if (shown)
-                    {
-                        Module.printErr ('(end of list)');
-                    }
-                }, 6000);
-            }
-        }
-        else
-        {
-            Module.printErr ('warning: run dependency added without ID');
-        }
-    }
+    // function addRunDependency (id)
+    // {
+    //     runDependencies++;
+    //     if (Module['monitorRunDependencies'])
+    //     {
+    //         Module['monitorRunDependencies'] (runDependencies);
+    //     }
+    //     if (id)
+    //     {
+    //         assert (!runDependencyTracking[id]);
+    //         runDependencyTracking[id] = 1;
+    //         if (runDependencyWatcher === null && typeof setInterval !== 'undefined')
+    //         {
+    //             // Check for missing dependencies every few seconds
+    //             runDependencyWatcher = setInterval (function ()
+    //             {
+    //                 var shown = false;
+    //                 for (var dep in runDependencyTracking)
+    //                 {
+    //                     if (!shown)
+    //                     {
+    //                         shown = true;
+    //                         Module.printErr ('still waiting on run dependencies:');
+    //                     }
+    //                     Module.printErr ('dependency: ' + dep);
+    //                 }
+    //                 if (shown)
+    //                 {
+    //                     Module.printErr ('(end of list)');
+    //                 }
+    //             }, 6000);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Module.printErr ('warning: run dependency added without ID');
+    //     }
+    // }
 
 
 // === Body ===
