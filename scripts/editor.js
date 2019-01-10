@@ -44,7 +44,7 @@ function basicRun ()
 {
     try
     {
-        let txt = toPlainString ();
+        let txt = progToString ();
         let p = new basic.Parser (txt);
         p.parse ();
         interpreter.setParser (p);
@@ -75,7 +75,7 @@ function immediate (txt)
     }
 }
 
-function toPlainString ()
+function progToString ()
 {
     let out = "\n";
     for (let i = 0; i < program.length; i++)
@@ -89,7 +89,7 @@ function save (filename)
 {
     try
     {
-        let x = toPlainString ();
+        let x = progToString ();
         fs.writeFileSync (filename, x);
     }
     catch (e)
@@ -138,6 +138,43 @@ function dir (srcPath)
         {
         }
     });
+}
+
+function renumber (args)
+{
+    let renMap = [];
+    let start = Number (args[1] || 10);
+    let step = Number (args[2] || 10);
+
+    for (let i = 0; i < program.length; i++)
+    {
+        renMap.push ({old: program[i].n, new: start});
+        program[i].n = start;
+        start += step;
+    }
+    // Pass 2
+    for (let i = 0; i < program.length; i++)
+    {
+        let linesplit = program[i].t.split (" ");
+        for (let s=0; s<linesplit.length; s++)
+        {
+            if (typeof linesplit[s] !== 'string')
+                continue;
+            let w = linesplit[s].toUpperCase();
+            if (w === 'GOTO' || w === 'GOSUB')
+            {
+                let num = linesplit[s+1];
+                for (let p=0; p<renMap.length; p++)
+                {
+                    if (renMap[p].old === num)
+                    {
+                        linesplit[s+1] = renMap[p].new;
+                    }
+                }
+            }
+        }
+        program[i].t = linesplit.join(' ');
+    }
 }
 
 function list (fromto)
@@ -246,6 +283,9 @@ while (1)
     let res = true;
     switch (sp[0].toUpperCase ())
     {
+        case "RENUMBER":
+            renumber (sp);
+            break;
         case "LIST":
             list (sp);
             break;

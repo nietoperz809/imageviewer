@@ -19,7 +19,7 @@
  last update: Thu May 27 00:42:16 EDT 2010
  */
 
-const sam = require('./sam');
+const sam = require ('./sam');
 
 function Token (text, type)
 {
@@ -2091,7 +2091,7 @@ function Interpreter (parser)
     this.restore_statement = function (self, idx)
     {
         self.data_pointer = 0;
-        return idx+1;
+        return idx + 1;
     }
 
     this.read_statement = function (self, idx)
@@ -2172,7 +2172,7 @@ function Interpreter (parser)
 
         self.last_input_var = 0;
         return idx + 1;
-    }
+    };
 
     this.print_statement = function (self, idx)
     {
@@ -2207,7 +2207,7 @@ function Interpreter (parser)
             self.print_function (result, eol);
 
         return idx + 1;
-    }
+    };
 
     this.say_statement = function (self, idx)  // TODO: make it!
     {
@@ -2238,7 +2238,7 @@ function Interpreter (parser)
             eol = false;
         }
 
-        let jss = new sam.SamJS();
+        let jss = new sam.SamJS ();
         jss.playSam (result);
 
         //if (self.print_function)
