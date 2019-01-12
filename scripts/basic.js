@@ -20,6 +20,8 @@
  */
 
 const sam = require ('./sam');
+const wait = require ('wait-for-stuff');
+const events = require('events');
 
 function Token (text, type)
 {
@@ -134,7 +136,7 @@ function Tokenizer (input)
 
     this.tokenize = function ()
     {
-        var keywords = /^(IF|THEN|ELSE|FOR|TO|RESTORE|STEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|SAY|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
+        var keywords = /^(IF|THEN|ELSE|FOR|TO|RESTORE|STEP|SLEEP|GOTO|GOSUB|RETURN|NEXT|INPUT|LET|CLS|SAY|PRINT|DIM|DATA|READ|REM|END|OR|AND|MOD|WHILE|WEND|RANDOMIZE|SYSTEM|KEY|CLEAR)$/i;
         var functions = /^(VAL|PI|STR\$|TI\$|LEFT\$|RIGHT\$|MID\$|LEN|RND|INT|INSTR|ABS|ASC|CHR\$|SQR|STRING\$|SIN|COS|TAN|TIMER)$/i;
         var i = 0;
         this.error = false;
@@ -1037,6 +1039,17 @@ function Parser (text)
         throw "ERROR: GOTO should be followed by number";
     }
 
+    this.sleep_statement = function (self)
+    {
+        var node = new Node ("SLEEP");
+        if (self.accept ("NUMBER"))
+        {
+            node.text = self.lastText ();
+            return node;
+        }
+        throw "ERROR: SLEEP should be followed by number";
+    }
+
     this.randomize_statement = function (self)
     {
         var node = new Node ("RANDOMIZE");
@@ -1431,6 +1444,7 @@ function Parser (text)
     this.functions["DIM"] = this.dim_statement;
     this.functions["IF"] = this.if_statement;
     this.functions["GOTO"] = this.goto_statement;
+    this.functions["SLEEP"] = this.sleep_statement;
     this.functions["GOSUB"] = this.gosub_statement;
     this.functions["RETURN"] = this.return_statement;
     this.functions["END"] = this.end_statement;
@@ -1573,7 +1587,7 @@ function Interpreter (parser)
 {
     this.parser = parser;
     this.ifunctions = new Array;
-    this.stop = false;
+    //this.stop = false;
 
     this.variables = new Array;
 
@@ -1609,7 +1623,7 @@ function Interpreter (parser)
     this.push_input = function (v)
     {
         this.input_stack.push (v);
-    }
+    };
 
     function debug (text)
     {
@@ -1636,10 +1650,10 @@ function Interpreter (parser)
         return indices;
     }
 
-    this.get_next_line = function (i)
-    {
-        return i + 1;
-    }
+//    this.get_next_line = function (i)
+//    {
+//        return i + 1;
+//    }
 
     this.ensure_exist = function (identifier)
     {
@@ -2324,6 +2338,21 @@ function Interpreter (parser)
         return self.find_label (label);
     }
 
+    this.sleep_statement = function (self, idx)
+    {
+        const statement = self.parser.statements[idx];
+        const label = statement.getText ();
+
+        const eventEmitter = new events.EventEmitter();
+        setTimeout (function ()
+        {
+            eventEmitter.emit('sleep');
+        }, Number(label));
+        wait.for.event (eventEmitter, 'sleep');
+
+        //console.log ('sleep '+label);
+        return idx+1;
+    };
 
     this.gosub_statement = function (self, idx)
     {
@@ -2729,6 +2758,7 @@ function Interpreter (parser)
     this.ifunctions["ASSIGNMENT"] = this.assignment_statement;
     this.ifunctions["IF"] = this.if_statement;
     this.ifunctions["GOTO"] = this.goto_statement;
+    this.ifunctions["SLEEP"] = this.sleep_statement;
     this.ifunctions["GOSUB"] = this.gosub_statement;
     this.ifunctions["RETURN"] = this.return_statement;
     this.ifunctions["END"] = this.end_statement;

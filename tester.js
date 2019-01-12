@@ -1,9 +1,12 @@
-function Auto()
-{
-    console.log ('auto');
-}
 
-auto1 = new Auto();
-auto2 = new Auto();
+var baudio = require('baudio');
 
-console.log (auto1);
+var n = 0;
+var b = baudio(function (t) {
+    var x = Math.sin(t * 262 + Math.sin(n));
+    n += Math.sin(t);
+    return x;
+});
+b.play();
+
+

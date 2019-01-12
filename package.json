@@ -6,11 +6,13 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "baudio": "^2.1.2",
     "cli-interact": "^0.1.9",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.16.0",
     "express-session": "^1.15.6",
+    "file-system": "^2.2.2",
     "http-errors": "~1.6.2",
     "morgan": "~1.9.0",
     "mustache": "2.3.2",
@@ -21,6 +23,7 @@
     "readline-sync": "^1.4.9",
     "robotjs": "^0.5.1",
     "sam-js": "0.0.2",
+    "sox": "^0.1.0",
     "speaker": "^0.4.1",
     "uuid": "^3.3.2",
     "wait-for-stuff": "^1.4.0",
